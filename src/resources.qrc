@@ -1,0 +1,14 @@
+<RCC>
+	<qresource>
+		<file>res/icons/Configure.png</file>
+		<file>res/icons/Connect.png</file>
+		<file>res/icons/Disconnect.png</file>
+		<file>res/icons/Battery.png</file>
+		<file>res/icons/Firmware.png</file>
+		<file>res/icons/OSD.png</file>
+		<file>res/icons/ADC.png</file>
+		<file>res/icons/Picture.png</file>
+		<file>res/icons/Screens.png</file>
+		<file>res/icons/Telemetry.png</file>
+	</qresource>
+</RCC>
