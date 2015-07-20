@@ -1,0 +1,16 @@
+eclipse.preferences.version=1
+encoding//src/config.py=utf-8
+encoding//src/controls.py=utf-8
+encoding//src/firmware.py=utf-8
+encoding//src/hw/board.py=utf-8
+encoding//src/hw/options.py=utf-8
+encoding//src/knownpaths.py=utf-8
+encoding//src/main.py=utf-8
+encoding//src/qboard.py=utf-8
+encoding//src/settings.py=utf-8
+encoding//src/stk500.py=utf-8
+encoding//src/storage.py=utf-8
+encoding//src/ui/__init__.py=utf-8
+encoding//src/ui/dialogs.py=utf-8
+encoding//src/ui/widgets.py=utf-8
+encoding//src/utils.py=utf-8

@@ -9,7 +9,7 @@ __all__ = ['Control', 'BoolControl', 'FloatControl', 'EnumControl', 'IntControl'
 
 class Control (QObject):
 
-    changed = Signal ()
+    stateChanged = Signal ()
 
     def __init__ (self, option, parent):
         super (Control, self).__init__ (parent)
@@ -21,7 +21,7 @@ class Control (QObject):
 
     def onChanged (self):
         self.save ()
-        self.changed.emit ()
+        self.stateChanged.emit ()
 
 
 class BoolControl (Control):
@@ -120,7 +120,7 @@ class StrControl (Control):
         self.input = QLineEdit (self.parent ())
         self.input.setMaxLength (self.option.length)
         self.input.setToolTip (self.option.description)
-        self.input.editingFinished.connect (lambda: self.changed.emit ())
+        self.input.editingFinished.connect (lambda: self.stateChanged.emit ())
         super (StrControl, self).setupUi ()
 
     def load (self):

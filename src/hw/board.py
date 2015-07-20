@@ -24,7 +24,7 @@ class Board (object):
 
     EEPROM_SIZE = 0x400
 
-    osd_prompt = 'osd#'
+    osd_prompt = b'osd#'
 
     info_regexp = re.compile (r'([A-Z]+):\s*(.*)?')
 
@@ -37,19 +37,28 @@ class Board (object):
         if self.connected:
             self.disconnect ()
 
-        self.serial = Serial (self.port, self.baudrate, timeout = 0.1)
+        try:
+            self.serial = Serial (self.port, self.baudrate, timeout = 1.0)
 
-        _stop_at = time.time () + timeout
-        while self.serial.readline ().strip () != 'READY':
-            if time.time () >= _stop_at:
-                raise TimeoutError ('Connection timeout')
+            _stop_at = time.time () + timeout
 
-        self.serial.write (b'config\r')
-        while self.serial.readline ().strip () != self.osd_prompt:
-            pass
+            while True:
+                line = self.serial.readline ().strip ()
+                if line == b'READY':
+                    break
+                if time.time () >= _stop_at:
+                    raise TimeoutError ('Connection timeout')
 
-        self.connected = True
-        self.info ()
+            self.serial.write (b'config\r')
+            while True:
+                line = self.serial.readline ().strip ()
+                if line == self.osd_prompt:
+                    break
+
+            self.connected = True
+        except:
+            self.serial.close ()
+            raise
 
     def disconnect (self):
         if not self.connected:
@@ -94,17 +103,27 @@ class Board (object):
         return (version, modules, panels)
 
     @needs_connection
-    def eeprom_read (self):
+    def eeprom_read (self, callback = None):
         self.execute ('eeprom r')
-        res = self.serial.read (self.EEPROM_SIZE)
+        res = bytearray ()
+        for i in range (self.EEPROM_SIZE / 0x10):
+            while self.serial.inWaiting () < 0x10:
+                time.sleep (0.1)
+            data = self.serial.read (0x10)
+            res.extend (bytearray (data))
+            if callback:
+                callback (i * 0x10)
         self.serial.readline ()
         self.serial.readline ()
         return bytearray (res)
 
     @needs_connection
-    def eeprom_write (self, data):
+    def eeprom_write (self, data, callback = None):
         self.execute ('eeprom w')
-        self.serial.write (bytes (data [:self.EEPROM_SIZE]))
+        for i in range (self.EEPROM_SIZE / 0x10):
+            self.serial.write (bytes (data [i:i + 0x10]))
+            if callback:
+                callback ((i + 1) * 0x10)
         self.serial.readline ()
         self.serial.readline ()
         self.serial.readline ()
@@ -117,7 +136,7 @@ class Board (object):
             if not line:
                 raise IOError ('Invalid file format')
             self.serial.write (line)
-            if callback:
+            if callback and i % 0x100 == 0:
                 callback (i)
         self.serial.write (b'\r\r')
 
@@ -130,8 +149,16 @@ class Board (object):
                 raise IOError ('Cannot download font')
             fp.write (line)
             fp.write (b'\r\n')
-            if callback:
+            if callback and i % 0x100 == 0:
                 callback (i)
+
+    @needs_connection
+    def reboot (self):
+        self.execute ('reboot')
+
+    @needs_connection
+    def reset (self):
+        self.execute ('reset')
 
     def __repr__ (self):
         return '<Board port={} connected={}, version={}, modules={}, panels={}>'.format (

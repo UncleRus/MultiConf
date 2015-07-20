@@ -10,5 +10,7 @@
 		<file>res/icons/Picture.png</file>
 		<file>res/icons/Screens.png</file>
 		<file>res/icons/Telemetry.png</file>
+		<file>res/icons/update.png</file>
+		<file>res/icons/upload.png</file>
 	</qresource>
 </RCC>

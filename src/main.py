@@ -5,7 +5,7 @@ from PySide.QtGui import *
 from PySide.QtCore import *
 import sys
 import resources_rc #@UnusedImport
-import pages
+
 
 #===============================================================================
 # Init
@@ -19,55 +19,17 @@ app.setApplicationVersion ('0.2')
 
 
 #===============================================================================
-# Tools
+# local imports
 #===============================================================================
-
-class SquareButton (QToolButton):
-
-    defaultSize = QSize (80, 80)
-    defaultIconSize = QSize (48, 48)
-
-    def __init__ (self, text, parent = None):
-        super (SquareButton, self).__init__ (parent)
-        self.setMinimumSize (self.defaultSize)
-        self.setIconSize (self.defaultIconSize)
-        self.setCheckable (True)
-        self.setChecked (False)
-        self.setToolButtonStyle (Qt.ToolButtonTextUnderIcon)
-        self.setText (text)
-
-    def setText (self, value):
-        super (SquareButton, self).setText (value)
-        self.setIcon (QIcon (QPixmap (':/res/icons/%s.png' % value)))
-
-
-class PageButton (SquareButton):
-
-    def __init__ (self, text, factory, widgetParent, parent = None):
-        super (PageButton, self).__init__ (text, parent)
-        self.factory = factory
-        self.widgetParent = widgetParent
-        self.widget = None
-        self.setEnabled (False)
-        self.toggled.connect (self.onToggled)
-
-    def init (self):
-        if self.widget:
-            raise RuntimeError ('Widget is already set')
-        self.widget = self.factory (self.text (), self.widgetParent)
-        self.widgetParent.addWidget (self.widget)
-        self.setEnabled (True)
-        #self.widget.hide ()
-
-    def clear (self):
-        self.widget.deleteLater ()
-        self.widget = None
-        self.setEnabled (False)
-
-    def onToggled (self, checked):
-        #self.widget.setVisible (checked)
-        if checked:
-            self.widgetParent.setCurrentWidget (self.widget)
+from settings import settings
+from storage import storage
+import utils
+import ui
+import firmware
+import config
+import qboard
+import hw
+#import screens
 
 
 #===============================================================================
@@ -76,82 +38,156 @@ class PageButton (SquareButton):
 
 class MainWindow (QWidget):
 
-    padding = 16
+    padding = 22
 
     def __init__ (self):
         super (MainWindow, self).__init__ ()
-        self.board = None
+        self.board = qboard.QBoard (self)
+        self.board.stateChanged.connect (self.updateState)
+        self.board.connectionChanged.connect (self.updateConnectionState)
+        self.board.errorOccured.connect (self.showError)
         self.setupUi ()
+        storage.updated.connect (self.updateConnectButton)
+        self.updateConnectButton ()
         #self.refreshUi ()
 
     def setupUi (self):
         self.setWindowTitle (u'%s v.%s' % (QApplication.applicationName (), QApplication.applicationVersion ()))
-        self.lMain = QHBoxLayout (self)
+        self.lMain = QVBoxLayout (self)
+        self.lMain.setContentsMargins (2, 2, 2, 2)
 
         # buttons panel
         self.pButtons = QFrame (self)
-        self.pButtons.setMinimumWidth (SquareButton.defaultSize.width () + self.padding)
-        self.pButtons.setMaximumWidth (self.pButtons.minimumWidth ())
+        self.pButtons.setAutoFillBackground (True)
+        self.pButtons.setBackgroundRole (QPalette.Mid)
+        self.pButtons.setMinimumHeight (ui.SquareButton.defaultSize.height () + self.padding)
+        self.pButtons.setMaximumHeight (self.pButtons.minimumHeight ())
         self.pButtons.setFrameStyle (QFrame.StyledPanel | QFrame.Sunken)
-        lButtons = QVBoxLayout (self.pButtons)
+        lButtons = QHBoxLayout (self.pButtons)
         self.lMain.addWidget (self.pButtons)
 
         # content
         self.content = QStackedWidget (self)
-        self.content.resize (100, 100)
+        self.content.board = self.board
         self.lMain.addWidget (self.content)
 
-        # port
-        lButtons.addWidget (QLabel ('Port:', self.pButtons))
-        self.cbPort = QComboBox (self.pButtons)
-        self.cbPort.setEditable (True)
-        self.cbPort.setEditText ('/dev/ttyUSB0')
-        lButtons.addWidget (self.cbPort)
+        # stausbar
+        lStatus = QHBoxLayout ()
+        cont = QWidget (self)
+        cont.setMaximumWidth (210)
+        lCont = QHBoxLayout (cont)
+        lCont.setContentsMargins (0, 0, 0, 0)
+        lStatus.addWidget (cont)
+        self.lMain.addLayout (lStatus)
 
-        # Connect/Disconnect button
-        self.bConnect = SquareButton ('Connect', self.pButtons)
-        lButtons.addWidget (self.bConnect)
+        self.lConnected = ui.FramedLabel (self.tr ('Disconnected'), parent = cont)
+        lCont.addWidget (self.lConnected)
+        self.pbProgress = QProgressBar (cont)
+        self.pbProgress.setMinimumWidth (100)
+        self.pbProgress.setMaximumWidth (150)
+        self.pbProgress.setMaximumHeight (self.lConnected.height () - 8)
+        lCont.addWidget (self.pbProgress)
+        self.lStatus = QLabel (self)
+        self.lStatus.setAlignment (Qt.AlignLeft | Qt.AlignVCenter)
+        lStatus.addWidget (self.lStatus)
+        lStatus.addStretch ()
+
+        # config buttons
+        self.bPicture = ui.PageButton ('Picture', self.tr ('Picture'), config.ConfigWidget, self.content, self.pButtons)
+        lButtons.addWidget (self.bPicture)
+        self.bADC = ui.PageButton ('ADC', self.tr ('ADC'), config.ConfigWidget, self.content, self.pButtons)
+        lButtons.addWidget (self.bADC)
+        self.bBattery = ui.PageButton ('Battery', self.tr ('Battery'), config.ConfigWidget, self.content, self.pButtons)
+        lButtons.addWidget (self.bBattery)
+        self.bTelemetry = ui.PageButton ('Telemetry', self.tr ('Telemetry'), config.ConfigWidget, self.content, self.pButtons)
+        lButtons.addWidget (self.bTelemetry)
+        self.bOSD = ui.PageButton ('OSD', self.tr ('OSD'), config.ConfigWidget, self.content, self.pButtons)
+        lButtons.addWidget (self.bOSD)
+        self.bScreens = ui.PageButton ('Screens', self.tr ('Screens'), lambda *args: None, self.content, self.pButtons)
+        lButtons.addWidget (self.bScreens)
+        lButtons.addStretch ()
+
+        self.configButtons = (self.bPicture, self.bADC, self.bBattery, self.bTelemetry, self.bOSD, self.bScreens)
 
         # Firmware button
-        self.bFirmware = PageButton ('Firmware', pages.FirmwareWidget, self.content, self.pButtons)
+        self.bFirmware = ui.PageButton ('Firmware', self.tr ('Firmware'), firmware.FirmwareWidget, self.content, self.pButtons)
         self.bFirmware.init ()
         lButtons.addWidget (self.bFirmware)
 
-        lButtons.addStretch ()
+        # Connect/Disconnect button
+        self.bConnect = ui.SquareButton ('Connect', self.tr ('Connect'), self.pButtons)
+        self.bConnect.setCheckable (False)
+        self.bConnect.clicked.connect (self.boardConnect)
+        lButtons.addWidget (self.bConnect)
 
-        # config buttons
-        self.bPicture = PageButton ('Picture', pages.ConfigWidget, self.content, self.pButtons)
-        lButtons.addWidget (self.bPicture)
-        self.bADC = PageButton ('ADC', pages.ConfigWidget, self.content, self.pButtons)
-        lButtons.addWidget (self.bADC)
-        self.bBattery = PageButton ('Battery', pages.ConfigWidget, self.content, self.pButtons)
-        lButtons.addWidget (self.bBattery)
-        self.bTelemetry = PageButton ('Telemetry', pages.ConfigWidget, self.content, self.pButtons)
-        lButtons.addWidget (self.bTelemetry)
-        self.bOSD = PageButton ('OSD', pages.ConfigWidget, self.content, self.pButtons)
-        lButtons.addWidget (self.bOSD)
-#        self.bScreens = PageButton ('Screens', pages.ConfigWidget, self.content, self.pButtons)
-#        lButtons.addWidget (self.bScreens)
-
-        lButtons.addStretch ()
-
-        # Main content area
+        # port
+        lPort = QVBoxLayout ()
+        lPort.addStretch ()
+        def changePort ():
+            try:
+                settings.port = utils.ports [self.cbPort.currentIndex ()]
+                print settings.port
+            except IndexError:
+                pass
+        lPort.addWidget (QLabel (self.tr ('Port:'), self.pButtons))
+        self.cbPort = QComboBox (self)
+        self.cbPort.addItems (utils.ports)
+        self.cbPort.currentIndexChanged.connect (changePort)
+        try:
+            index = utils.ports.index (settings.port)
+        except ValueError:
+            index = 0
+        self.cbPort.setCurrentIndex (index)
+        lPort.addWidget (self.cbPort)
+        lPort.addStretch ()
+        lButtons.addLayout (lPort)
 
         # TODO: save & restore window size & pos
-        self.resize (1000, 900)
+        self.resize (900, 600)
 
+        self.bFirmware.setChecked (True)
 
-    def refreshUi (self):
-        if not self.board:
-            self.bPicture.setEnabled (False)
-            self.bADC.setEnabled (False)
-            self.bBattery.setEnabled (False)
-            self.bTelemetry.setEnabled (False)
-            self.bOSD.setEnabled (False)
-            #self.bScreens.setEnabled (False)
-            self.bFirmware.setEnabled (True)
-            self.bConnect.setEnabled (True)
-            #self.switchTo ()
+    def updateState (self, state):
+        self.lStatus.setText (state)
+        QApplication.processEvents ()
+
+    def updateConnectionState (self, state):
+        self.lConnected.setText (self.tr ('Connected') if state else self.tr ('Disconnected'))
+        self.bFirmware.setEnabled (not state)
+        if state:
+            self.bConnect.setText (self.tr ('Disconnect'))
+            self.bConnect.setName ('Disconnect')
+        else:
+            self.bConnect.setText (self.tr ('Connect'))
+            self.bConnect.setName ('Connect')
+
+        self.board.map = hw.OptionsMap (storage.getMap (self.board.version))
+        self.board.map.load (self.board.eeprom)
+
+        for btn in self.configButtons:
+            if state:
+                btn.init ()
+            btn.setEnabled (state)
+
+        QApplication.processEvents ()
+
+    def updateProgress (self, percentage):
+        self.pbProgress.setValue (percentage)
+        QApplication.processEvents ()
+
+    def updateConnectButton (self):
+        self.bConnect.setEnabled (not storage.isEmpty ())
+
+    def boardConnect (self):
+        if self.board.isConnected ():
+            return self.boardDisconnect ()
+        self.board.connectBoard ()
+
+    def boardDisconnect (self):
+        self.board.disconnectBoard ()
+
+    def showError (self, error):
+        QMessageBox.critical (self, self.tr ('Error'), error)
 
 
 def main ():

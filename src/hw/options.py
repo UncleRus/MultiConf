@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import struct
-from .board import Board
 
 
 __all__ = ['Option', 'StrOption', 'EnumOption', 'NumericOption', 'Section', 'OptionsMap']
@@ -109,6 +108,7 @@ class OptionsMap (object):
     def parse (self, struct):
         self.struct = struct
         self.sections.clear ()
+        self.map.clear ()
         for sname, sdef in struct ['options'].items ():
             self.sections [sname] = Section (sname, **sdef)
             for oname, odef in sdef ['options'].items ():
@@ -121,9 +121,7 @@ class OptionsMap (object):
         for s in self.sections.values ():
             s.unpack (eeprom)
 
-    def save (self, modules):
-        result = bytearray ([0xff] * Board.EEPROM_SIZE)
+    def save (self, modules, eeprom):
         for s in self.sections:
             if s.enabled (modules):
-                s.pack_into (result)
-        return result
+                s.pack_into (eeprom)
