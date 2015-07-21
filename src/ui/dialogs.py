@@ -7,7 +7,7 @@ from PySide.QtGui import *
 class AsyncProcess (QThread):
 
     progressUpdated = Signal (int)
-    stateChanged = Signal (str)
+    changed = Signal (str)
     errorOccured = Signal (str)
     bannerUpdated = Signal (str)
 
@@ -73,13 +73,13 @@ class ProcessDialog (QDialog):
         self.process.finished.connect (self.unlockInterface)
         self.process.terminated.connect (self.reset)
         self.process.errorOccured.connect (self.showError)
-        self.process.stateChanged.connect (self.setStatus)
+        self.process.changed.connect (self.setStatus)
         self.process.progressUpdated.connect (self.updateProgress)
 
     def reset (self):
-        self.bContinue.setText (self.tr ('Continue'))
+        self.bContinue.setText (_('Continue'))
         self.bContinue.setEnabled (True)
-        self.bCancel.setText (self.tr ('Cancel'))
+        self.bCancel.setText (_('Cancel'))
         self.bCancel.setEnabled (True)
         self.bCancel.show ()
         self.finished = False
@@ -92,13 +92,13 @@ class ProcessDialog (QDialog):
     def unlockInterface (self):
         # process finished
         self.bContinue.hide ()
-        self.bCancel.setText (self.tr ('Close'))
+        self.bCancel.setText (_('Close'))
         self.bCancel.setEnabled (True)
         QApplication.restoreOverrideCursor ()
         self.finished = True
 
     def showError (self, error):
-        QMessageBox.critical (self, self.tr ('Firmware upload error'), error)
+        QMessageBox.critical (self, _('Firmware upload error'), error)
         self.lStatus.setText ('Error: %s' % error)
         self.reset ()
 

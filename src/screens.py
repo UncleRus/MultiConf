@@ -3,7 +3,7 @@
 
 from PySide.QtCore import *
 from PySide.QtGui import *
-import sys
+import ui
 
 
 CHAR_WIDTH = 12
@@ -68,8 +68,19 @@ class Font (object):
 
 class PanelType (object):
 
-    def __init__ (self, name, size, textbuf, minSize = None):
+    @classmethod
+    def create (cls, struct):
+        return cls (
+            name = struct ['name'],
+            description = struct ['descr'],
+            size = struct ['size'],
+            textbuf = struct ['filler'],
+            minSize = struct ['min_size']
+        )
+
+    def __init__ (self, name, description, size, textbuf, minSize = None):
         self.name = name
+        self.description = description
         self.width, self.height = size
         self.textbuf = textbuf
         self.minWidth, self.minHeight = minSize or size
@@ -103,7 +114,6 @@ class Panel (QGraphicsItem):
         if self.fixedFont and self.panelType:
             self._rect = QRectF (0, 0, self.panelType.width * CHAR_WIDTH, self.panelType.height * CHAR_HEIGHT)
             self.pixmap = QPixmap.fromImage (self.fixedFont.write (self.panelType.textbuf))
-            self.boundingRect()
 
     def screenPos (self):
         return self.scene ().toScreenPos (self.pos ())
@@ -270,27 +280,11 @@ class ScreenEditor (QGraphicsView):
             self.fitInView (self.sceneRect (), Qt.KeepAspectRatio)
 
 
-panelTypes = (
-    PanelType ('StableAlt', (7, 1), b'\x85137\x8d', (6, 1)),
-    PanelType ('Climb', (7, 1), b'\x04-1.5\x8c', (6, 1)),
-    PanelType ('FlightMode', (6, 3), (b'\xd0\xd1\xd1\xd1\xd1\xd2', b'\xd3MODE\xd7', b'\xd4\xd5\xd5\xd5\xd5\xd6')),
-    PanelType ('ArmedFlag', (3, 3), (b'\xd8\xd9\xda', b'\xdb\xe0\xdf', b'\xdc\xdd\xde')),
-    PanelType ('ConState', (3, 3), (b'\xd8\xd9\xda', b'\xdb\xe1\xdf', b'\xdc\xdd\xde')),
-    PanelType ('FlightTime', (7, 1), b'\xb312:34', (6, 1)),
-    PanelType ('Roll', (7, 1), b'\xb2-15\xb0', (5, 1)),
-    PanelType ('Pitch', (7, 1), b'\xb110\xb0', (5, 1)),
-    PanelType ('GPS', (6, 1), b'\x10\x11\x0212', (5, 1)),
-    PanelType ('Lat', (10, 1), b'\x8356.833233'),
-    PanelType ('Lon', (10, 1), b'\x8460.583333'),
-)
+class ScreensWidget (ui.Scrollable):
 
-panelTypesByName = {pt.name: pt for pt in panelTypes}
+    def __init__ (self, count, eeprom, parent = None):
+        super (ScreensWidget, self).__init__ (parent)
 
-
-class Win (QWidget):
-
-    def __init__ (self):
-        super (Win, self).__init__ ()
         self.screen = Screen (30, 16, Font (open ('main_font.mcm', 'rb')), QImage ('background.jpg'), owner = self)
         self.view = ScreenEditor (self.screen, self)
 
@@ -300,13 +294,13 @@ class Win (QWidget):
         self.l_main.addWidget (self.view)
 
 
-app = QApplication (sys.argv)
-
-#s = Screen (30, 16, Font (open ('main_font.mcm', 'rb')), QImage ('background.jpg'))
-w = Win ()
-w.resize (1100, 800)
-
-w.show ()
-
-sys.exit (app.exec_ ())
+#app = QApplication (sys.argv)
+#
+##s = Screen (30, 16, Font (open ('main_font.mcm', 'rb')), QImage ('background.jpg'))
+#w = Win ()
+#w.resize (1100, 800)
+#
+#w.show ()
+#
+#sys.exit (app.exec_ ())
 

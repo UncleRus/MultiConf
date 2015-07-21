@@ -9,19 +9,23 @@ __all__ = ['Control', 'BoolControl', 'FloatControl', 'EnumControl', 'IntControl'
 
 class Control (QObject):
 
-    stateChanged = Signal ()
+    changed = Signal ()
 
     def __init__ (self, option, parent):
         super (Control, self).__init__ (parent)
         self.option = option
         self.setupUi ()
+        self.field = QVBoxLayout ()
 
     def setupUi (self):
         self.input.setDisabled (self.option.readonly)
+        self.field.addWidget (self.input)
+        self.hint = QLabel ('<i>%s</i>' % _(self.description))
+        self.field.addWidget (self.hint)
 
     def onChanged (self):
         self.save ()
-        self.stateChanged.emit ()
+        self.changed.emit ()
 
 
 class BoolControl (Control):
@@ -30,7 +34,7 @@ class BoolControl (Control):
         self.label = None
         self.input = QCheckBox (self.option.name, self.parent ())
         self.input.setToolTip (self.option.description)
-        self.input.stateChanged.connect (self.onChanged)
+        self.input.changed.connect (self.onChanged)
         super (BoolControl, self).setupUi ()
 
     def load (self):
@@ -120,7 +124,7 @@ class StrControl (Control):
         self.input = QLineEdit (self.parent ())
         self.input.setMaxLength (self.option.length)
         self.input.setToolTip (self.option.description)
-        self.input.editingFinished.connect (lambda: self.stateChanged.emit ())
+        self.input.editingFinished.connect (lambda: self.changed.emit ())
         super (StrControl, self).setupUi ()
 
     def load (self):

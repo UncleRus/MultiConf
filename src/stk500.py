@@ -102,7 +102,7 @@ def needConnection (func):
         self = args [0]
         try:
             if not self.serial.isOpen ():
-                raise IOError (self.tr ('Not connected'))
+                raise IOError (_('Not connected'))
             return func (*args, **kwargs)
         except Exception as e:
             self.setError (e)
@@ -123,7 +123,7 @@ class Arduino (QObject):
     timeout = Setting ('Arduino/Timeout', 5.0)
 
     errorOccured = Signal (str)
-    stateChanged = Signal (str)
+    changed = Signal (str)
     progressUpdated = Signal (int)
 
     def __init__ (self, parent = None):
@@ -138,7 +138,7 @@ class Arduino (QObject):
             res = bytearray ()
             while True:
                 if time.time () > stop:
-                    raise IOError (self.tr ('Sync timeout'))
+                    raise IOError (_('Sync timeout'))
                 if self.serial.inWaiting () > 0:
                     b = self.serial.read ()
                     res.append (b)
@@ -148,7 +148,7 @@ class Arduino (QObject):
 
         while self.serial.inWaiting () < length:
             if time.time () > stop:
-                raise IOError (self.tr ('Sync timeout'))
+                raise IOError (_('Sync timeout'))
             QApplication.processEvents ()
         return self.serial.read (length)
 
@@ -156,7 +156,7 @@ class Arduino (QObject):
         res = self.readBytes (None if length is None else length + 2)
         #print 'RECV (%02x):' % len (res), dump (res)
         if res [0] != const.RESP_STK_INSYNC or res [-1] != const.RESP_STK_OK:
-            raise IOError (self.tr ('Out of sync'))
+            raise IOError (_('Out of sync'))
         return res [1:-1]
 
     def execute (self, cmd, resLength = 0):
@@ -175,7 +175,7 @@ class Arduino (QObject):
         if tail:
             loops += 1
         result = bytearray ()
-        self.stateChanged.emit (self.tr (state))
+        self.changed.emit (_(state))
         self.progressUpdated.emit (0)
         for i in xrange (loops):
             offset = i * buffer_size
@@ -183,7 +183,7 @@ class Arduino (QObject):
             result += func (offset, tail if tail and i == loops - 1 else buffer_size)
             self.progressUpdated.emit (100.0 / loops * (i + 1))
             QApplication.processEvents ()
-        self.stateChanged.emit (self.tr ('Done'))
+        self.changed.emit (_('Done'))
         self.progressUpdated.emit (100)
         return bytes (result)
 
@@ -206,7 +206,7 @@ class Arduino (QObject):
         )
 
     def setError (self, e):
-        self.stateChanged.emit (self.tr ('Error'))
+        self.changed.emit (_('Error'))
         self.errorOccured.emit (str (e).decode ('utf-8'))
 
     def reset (self):
@@ -244,7 +244,7 @@ class Arduino (QObject):
                     continue
                 if self.readBytes (2) == const.RESP_STK_INSYNC + const.RESP_STK_OK:
                     break
-            self.stateChanged.emit (self.tr ('Connected'))
+            self.changed.emit (_('Connected'))
             self.progressUpdated.emit (0)
             return True
         except Exception as e:
@@ -260,7 +260,7 @@ class Arduino (QObject):
 
     def close (self):
         self.serial.close ()
-        self.stateChanged.emit (self.tr ('Disconnected'))
+        self.changed.emit (_('Disconnected'))
         self.progressUpdated.emit (0)
 
     @needConnection
@@ -319,5 +319,5 @@ class Arduino (QObject):
         bin = buffer.getvalue ()
         self.uploadFlash (0, bin)
         if self.downloadFlash (0, len (bin)) != bin:
-            raise IOError (self.tr ('Verification failed'))
+            raise IOError (_('Verification failed'))
 

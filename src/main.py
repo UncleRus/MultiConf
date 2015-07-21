@@ -4,8 +4,10 @@
 from PySide.QtGui import *
 from PySide.QtCore import *
 import sys
-import resources_rc #@UnusedImport
+import gettext
+import os.path as osp
 
+import resources_rc #@UnusedImport
 
 #===============================================================================
 # Init
@@ -16,6 +18,8 @@ app = QApplication (sys.argv)
 app.setOrganizationName ('UncleRus')
 app.setApplicationName ('MultiOSD configurator')
 app.setApplicationVersion ('0.2')
+
+gettext.install ('MultiConf', osp.join (app.applicationDirPath (), 'locales'), unicode = True)
 
 
 #===============================================================================
@@ -38,12 +42,14 @@ import hw
 
 class MainWindow (QWidget):
 
+    configPages = ('Telemetry', 'Picture', 'ADC', 'Battery', 'OSD')
+
     padding = 22
 
     def __init__ (self):
         super (MainWindow, self).__init__ ()
         self.board = qboard.QBoard (self)
-        self.board.stateChanged.connect (self.updateState)
+        self.board.changed.connect (self.updateState)
         self.board.connectionChanged.connect (self.updateConnectionState)
         self.board.errorOccured.connect (self.showError)
         self.setupUi ()
@@ -58,8 +64,6 @@ class MainWindow (QWidget):
 
         # buttons panel
         self.pButtons = QFrame (self)
-        self.pButtons.setAutoFillBackground (True)
-        self.pButtons.setBackgroundRole (QPalette.Mid)
         self.pButtons.setMinimumHeight (ui.SquareButton.defaultSize.height () + self.padding)
         self.pButtons.setMaximumHeight (self.pButtons.minimumHeight ())
         self.pButtons.setFrameStyle (QFrame.StyledPanel | QFrame.Sunken)
@@ -79,8 +83,7 @@ class MainWindow (QWidget):
         lCont.setContentsMargins (0, 0, 0, 0)
         lStatus.addWidget (cont)
         self.lMain.addLayout (lStatus)
-
-        self.lConnected = ui.FramedLabel (self.tr ('Disconnected'), parent = cont)
+        self.lConnected = ui.FramedLabel (_('Disconnected'), parent = cont)
         lCont.addWidget (self.lConnected)
         self.pbProgress = QProgressBar (cont)
         self.pbProgress.setMinimumWidth (100)
@@ -92,30 +95,22 @@ class MainWindow (QWidget):
         lStatus.addWidget (self.lStatus)
         lStatus.addStretch ()
 
-        # config buttons
-        self.bPicture = ui.PageButton ('Picture', self.tr ('Picture'), config.ConfigWidget, self.content, self.pButtons)
-        lButtons.addWidget (self.bPicture)
-        self.bADC = ui.PageButton ('ADC', self.tr ('ADC'), config.ConfigWidget, self.content, self.pButtons)
-        lButtons.addWidget (self.bADC)
-        self.bBattery = ui.PageButton ('Battery', self.tr ('Battery'), config.ConfigWidget, self.content, self.pButtons)
-        lButtons.addWidget (self.bBattery)
-        self.bTelemetry = ui.PageButton ('Telemetry', self.tr ('Telemetry'), config.ConfigWidget, self.content, self.pButtons)
-        lButtons.addWidget (self.bTelemetry)
-        self.bOSD = ui.PageButton ('OSD', self.tr ('OSD'), config.ConfigWidget, self.content, self.pButtons)
-        lButtons.addWidget (self.bOSD)
-        self.bScreens = ui.PageButton ('Screens', self.tr ('Screens'), lambda *args: None, self.content, self.pButtons)
-        lButtons.addWidget (self.bScreens)
+        # config pages
+        self.pages = []
+        for name in self.configPages:
+            page = config.ConfigWidget (name, self.board, self.content)
+            self.content.addWidget (page)
+            lButtons.addWidget (page.button)
+            self.pages.append (page)
+        #lButtons.addWidget (self.bScreens)
         lButtons.addStretch ()
 
-        self.configButtons = (self.bPicture, self.bADC, self.bBattery, self.bTelemetry, self.bOSD, self.bScreens)
-
-        # Firmware button
-        self.bFirmware = ui.PageButton ('Firmware', self.tr ('Firmware'), firmware.FirmwareWidget, self.content, self.pButtons)
-        self.bFirmware.init ()
-        lButtons.addWidget (self.bFirmware)
+        self.firmwarePage = firmware.FirmwareWidget (self.board, self.content)
+        lButtons.addWidget (self.firmwarePage.button)
+        self.content.addWidget (self.firmwarePage)
 
         # Connect/Disconnect button
-        self.bConnect = ui.SquareButton ('Connect', self.tr ('Connect'), self.pButtons)
+        self.bConnect = ui.SquareButton ('Connect', _('Connect'), self.pButtons)
         self.bConnect.setCheckable (False)
         self.bConnect.clicked.connect (self.boardConnect)
         lButtons.addWidget (self.bConnect)
@@ -129,7 +124,7 @@ class MainWindow (QWidget):
                 print settings.port
             except IndexError:
                 pass
-        lPort.addWidget (QLabel (self.tr ('Port:'), self.pButtons))
+        lPort.addWidget (QLabel (_('Port:'), self.pButtons))
         self.cbPort = QComboBox (self)
         self.cbPort.addItems (utils.ports)
         self.cbPort.currentIndexChanged.connect (changePort)
@@ -145,31 +140,25 @@ class MainWindow (QWidget):
         # TODO: save & restore window size & pos
         self.resize (900, 600)
 
-        self.bFirmware.setChecked (True)
+        self.firmwarePage.button.click ()
 
     def updateState (self, state):
         self.lStatus.setText (state)
         QApplication.processEvents ()
 
     def updateConnectionState (self, state):
-        self.lConnected.setText (self.tr ('Connected') if state else self.tr ('Disconnected'))
+        self.lConnected.setText (_('Connected') if state else _('Disconnected'))
+        self.cbPort.setEnabled (not state)
         self.bFirmware.setEnabled (not state)
+
         if state:
-            self.bConnect.setText (self.tr ('Disconnect'))
+            self.bConnect.setText (_('Disconnect'))
             self.bConnect.setName ('Disconnect')
+            self.configPages [0].button.click ()
         else:
-            self.bConnect.setText (self.tr ('Connect'))
+            self.bFirmware.toggle ()
+            self.bConnect.setText (_('Connect'))
             self.bConnect.setName ('Connect')
-
-        self.board.map = hw.OptionsMap (storage.getMap (self.board.version))
-        self.board.map.load (self.board.eeprom)
-
-        for btn in self.configButtons:
-            if state:
-                btn.init ()
-            btn.setEnabled (state)
-
-        QApplication.processEvents ()
 
     def updateProgress (self, percentage):
         self.pbProgress.setValue (percentage)
@@ -187,7 +176,7 @@ class MainWindow (QWidget):
         self.board.disconnectBoard ()
 
     def showError (self, error):
-        QMessageBox.critical (self, self.tr ('Error'), error)
+        QMessageBox.critical (self, _('Error'), error)
 
 
 def main ():

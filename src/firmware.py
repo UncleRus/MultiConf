@@ -21,17 +21,17 @@ class FirmwareUpload (ui.AsyncProcess):
 
         self.board = stk500.Arduino (self)
         self.board.errorOccured.connect (self.onErrorOccured)
-        self.board.stateChanged.connect (self.onStateChanged)
+        self.board.changed.connect (self.onStateChanged)
         self.board.progressUpdated.connect (self.onProgressUpdated)
 
         self.osd = qboard.QBoard (self)
-        self.osd.stateChanged.connect (self.onStateChanged)
+        self.osd.changed.connect (self.onStateChanged)
         self.osd.progressUpdated.connect (self.onProgressUpdated)
-        self.osd.timeoutOccured.connect (lambda: self.onErrorOccured (self.tr ('Timeout')))
+        self.osd.timeoutOccured.connect (lambda: self.onErrorOccured (_('Timeout')))
         self.osd.errorOccured.connect (self.onErrorOccured)
 
     def onStateChanged (self, state):
-        self.stateChanged.emit (state)
+        self.changed.emit (state)
 
     def onProgressUpdated (self, percentage):
         self.progressUpdated.emit (percentage)
@@ -43,29 +43,29 @@ class FirmwareUpload (ui.AsyncProcess):
         self.errorOccured.emit (error)
 
     def upload (self):
-        self.bannerUpdated.emit (self.tr ('Press reset button on MinimOSD'))
+        self.bannerUpdated.emit (_('Press reset button on MinimOSD'))
         if not self.board.open (settings.port, settings.stkBaudrate):
             return
-        self.bannerUpdated.emit (self.tr ('Please wait'))
+        self.bannerUpdated.emit (_('Please wait'))
         signature = self.board.readSignature ()
         if signature != settings.chipSignature:
-            raise RuntimeError (self.tr ('Invalid chip signature'))
+            raise RuntimeError (_('Invalid chip signature'))
         self.board.uploadHex (open (self.hexFilename, 'rb'))
         self.board.close ()
 
-        self.bannerUpdated.emit (self.tr ('Firmware was uploaded successfully'))
+        self.bannerUpdated.emit (_('Firmware was uploaded successfully'))
 
         if self.fontFilename:
-            self.bannerUpdated.emit (self.tr ('Connecting to MultiOSD...'))
+            self.bannerUpdated.emit (_('Connecting to MultiOSD...'))
             self.osd.connectBoard ()
-            self.bannerUpdated.emit (self.tr ('Please wait'))
+            self.bannerUpdated.emit (_('Please wait'))
             self.osd.uploadFont (self.fontFilename)
             self.osd.disconnectBoard ()
-            self.bannerUpdated.emit (self.tr ('Font was uploaded successfully'))
+            self.bannerUpdated.emit (_('Font was uploaded successfully'))
 
     def cancel (self):
         self.board.cancel ()
-        self.errorOccured.emit (self.tr ('Cancelled'))
+        self.errorOccured.emit (_('Cancelled'))
 
 
 class FirmwareDialog (ui.ProcessDialog):
@@ -74,11 +74,11 @@ class FirmwareDialog (ui.ProcessDialog):
         super (FirmwareDialog, self).__init__ (parent)
         self.hexFilename = hexFilename
         self.fontFilename = fontFilename
-        self.setWindowTitle (self.tr ('Firmware upload'))
+        self.setWindowTitle (_('Firmware upload'))
 
     def reset (self):
         super (FirmwareDialog, self).reset ()
-        self.lBanner.setText (self.tr ('Connect MinimOSD and press "Continue"'))
+        self.lBanner.setText (_('Connect MinimOSD and press "Continue"'))
 
     def start (self):
         self.process = FirmwareUpload (self.hexFilename, self.fontFilename, self)
@@ -88,36 +88,40 @@ class FirmwareDialog (ui.ProcessDialog):
 
 class FirmwareWidget (ui.Scrollable):
 
-    def __init__ (self, name, parent = None):
+    def __init__ (self, board, parent = None):
         super (FirmwareWidget, self).__init__ (parent)
         storage.updated.connect (self.showUpdates)
         self.maps = {}
         self.builds = []
         self.refresh ()
+        self.button = ui.SquareButton ('Firmware', _('Firmware'))
+        self.button.toggled.connect (lambda state: self.parent ().setCurrentWidget (self))
+        self.board = board
+        self.board.connectionChanged.connect (lambda state: self.button.setEnabled (not state))
 
     def setupUi (self):
         super (FirmwareWidget, self).setupUi ()
         self.lContent = QVBoxLayout (self.content)
 
         l = QHBoxLayout ()
-        l.addWidget (QLabel (self.tr ('Latest firmware version:'), self.content))
+        l.addWidget (QLabel (_('Latest firmware version:'), self.content))
         self.cbVersion = QComboBox (self)
         self.cbVersion.currentIndexChanged.connect (self.refreshSelected)
         self.cbVersion.setMinimumWidth (220)
         l.addWidget (self.cbVersion)
-        self.bUpdate = QPushButton (self.tr ('Check for updates'), self.content)
+        self.bUpdate = QPushButton (_('Check for updates'), self.content)
         self.bUpdate.setIcon (QIcon (QPixmap (':res/icons/update.png')))
         self.bUpdate.clicked.connect (self.checkForUpdates)
         l.addWidget (self.bUpdate)
         l.addStretch ()
         self.lContent.addLayout (l)
 
-        self.gbBuilds = QGroupBox (self.tr ('Firmware build'), self.content)
+        self.gbBuilds = QGroupBox (_('Firmware build'), self.content)
         self.lBuilds = QVBoxLayout (self.gbBuilds)
         self.lContent.addWidget (self.gbBuilds)
 
         l = QHBoxLayout ()
-        self.bUpload = QPushButton (self.tr ('Upload firmware'), self.content)
+        self.bUpload = QPushButton (_('Upload firmware'), self.content)
         self.bUpload.setIcon (QIcon (QPixmap (':res/icons/upload.png')))
         self.bUpload.setEnabled (False)
         self.bUpload.clicked.connect (self.onUpload)
@@ -135,7 +139,7 @@ class FirmwareWidget (ui.Scrollable):
     def showUpdates (self, updated):
         if updated:
             self.refresh ()
-        QMessageBox.information (self, self.tr ('Result'), self.tr ('Found updates!') if updated else self.tr ('No updates were found.'))
+        QMessageBox.information (self, _('Result'), _('Updates are found') if updated else _('No updates were found.'))
 
     def refreshSelected (self):
         del self.builds [:]

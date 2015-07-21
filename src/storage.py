@@ -9,6 +9,7 @@ import json
 from settings import settings
 import requests
 import time
+import traceback
 
 
 class DataStorage (QObject):
@@ -39,7 +40,7 @@ class DataStorage (QObject):
 
             res = requests.get (url)
             if res.status_code != 200:
-                raise (self.tr ('Cannot download %s') % url)
+                raise Exception (_('Cannot download %s') % url)
 
             if filename:
                 with open (filename, 'wb') as f:
@@ -47,7 +48,8 @@ class DataStorage (QObject):
 
             return json.loads (res.text.encode ('utf-8')) if rjson else None
         except Exception as e:
-            QMessageBox.critical (self, self.tr ('Error'), str (e).decode ('utf-8'))
+            traceback.print_exc ()
+            QMessageBox.critical (None, _('Error'), str (e).decode ('utf-8'))
             return None
         finally:
             QApplication.restoreOverrideCursor ()
@@ -65,6 +67,7 @@ class DataStorage (QObject):
 
     def update (self):
         releases = self.download (settings.repositoryUrl, None, True, True)
+        print releases
         if ({rel ['id']: rel ['name'] for rel in releases} == \
             {rel ['id']: rel ['name'] for rel in self.releases}):
             self.updated.emit (False)
@@ -85,7 +88,8 @@ class DataStorage (QObject):
     def getAsset (self, release, name):
         asset = {a ['name']: a for a in release ['assets']}.get (name)
         if not asset:
-            QMessageBox.critical (self, self.tr ('Error'), self.tr ('Cannot find asset "%s" in release "%s"' % (name, release ['name'])))
+            QMessageBox.critical (None, _('Error'), _('Cannot find asset "%s" in release "%s"') % (name, release ['name']))
+            return None
         return asset ['browser_download_url']
 
     def getHex (self, relIdx, build):
