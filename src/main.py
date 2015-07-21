@@ -32,7 +32,6 @@ import ui
 import firmware
 import config
 import qboard
-import hw
 #import screens
 
 
@@ -51,6 +50,7 @@ class MainWindow (QWidget):
         self.board = qboard.QBoard (self)
         self.board.changed.connect (self.updateState)
         self.board.connectionChanged.connect (self.updateConnectionState)
+        self.board.progressUpdated.connect (lambda x: self.pbProgress.setValue (x))
         self.board.errorOccured.connect (self.showError)
         self.setupUi ()
         storage.updated.connect (self.updateConnectButton)
@@ -106,6 +106,7 @@ class MainWindow (QWidget):
         lButtons.addStretch ()
 
         self.firmwarePage = firmware.FirmwareWidget (self.board, self.content)
+        self.firmwarePage.button.setParent (self.pButtons)
         lButtons.addWidget (self.firmwarePage.button)
         self.content.addWidget (self.firmwarePage)
 
@@ -149,12 +150,11 @@ class MainWindow (QWidget):
     def updateConnectionState (self, state):
         self.lConnected.setText (_('Connected') if state else _('Disconnected'))
         self.cbPort.setEnabled (not state)
-        self.bFirmware.setEnabled (not state)
 
         if state:
             self.bConnect.setText (_('Disconnect'))
             self.bConnect.setName ('Disconnect')
-            self.configPages [0].button.click ()
+            self.pages [0].button.click ()
         else:
             self.bFirmware.toggle ()
             self.bConnect.setText (_('Connect'))
@@ -168,12 +168,11 @@ class MainWindow (QWidget):
         self.bConnect.setEnabled (not storage.isEmpty ())
 
     def boardConnect (self):
+        #utils.callAsync (self.board.disconnectBoard if self.board.isConnected () else self.board.connectBoard)
         if self.board.isConnected ():
-            return self.boardDisconnect ()
-        self.board.connectBoard ()
-
-    def boardDisconnect (self):
-        self.board.disconnectBoard ()
+            self.board.disconnectBoard ()
+        else:
+            ui.ConnectDialog (self.board, self).exec_ ()
 
     def showError (self, error):
         QMessageBox.critical (self, _('Error'), error)

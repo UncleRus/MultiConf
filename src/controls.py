@@ -14,13 +14,13 @@ class Control (QObject):
     def __init__ (self, option, parent):
         super (Control, self).__init__ (parent)
         self.option = option
-        self.setupUi ()
         self.field = QVBoxLayout ()
+        self.setupUi ()
 
     def setupUi (self):
         self.input.setDisabled (self.option.readonly)
         self.field.addWidget (self.input)
-        self.hint = QLabel ('<i>%s</i>' % _(self.description))
+        self.hint = QLabel ('<i>%s</i>' % _(self.option.description))
         self.field.addWidget (self.hint)
 
     def onChanged (self):
@@ -34,7 +34,7 @@ class BoolControl (Control):
         self.label = None
         self.input = QCheckBox (self.option.name, self.parent ())
         self.input.setToolTip (self.option.description)
-        self.input.changed.connect (self.onChanged)
+        self.input.stateChanged.connect (self.onChanged)
         super (BoolControl, self).setupUi ()
 
     def load (self):

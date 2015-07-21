@@ -46,16 +46,16 @@ class ConfigWidget (ui.Scrollable):
         self.lContent = QFormLayout (self.content)
 
     def load (self):
-        _map = self.board.map
-        for optname in _map.struct ['map'][self.name]:
-            opt = _map.map [optname]
+        options = self.board.options
+        for optname in options.struct ['map'][self.name]:
+            opt = options.map [optname]
             if not opt.section.enabled (self.board.modules):
                 continue
             ctrl = self._factories [opt.type] (opt, self.content)
             ctrl.load ()
             ctrl.changed.connect (self.onChanged)
             self.controls.append (ctrl)
-            self.lContent.addRow (ctrl.label, ctrl.input)
+            self.lContent.addRow (ctrl.label, ctrl.field)
 
     def onChanged (self):
         self.changed.emit ()

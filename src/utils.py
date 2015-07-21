@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from PySide.QtCore import QSettings, QThread, Signal
+from PySide.QtGui import QApplication
 import ast
-from PySide.QtCore import QSettings
 import sys
 import glob
 import serial
@@ -34,6 +35,37 @@ class Setting (object):
 
     def __set__ (self, owner, value):
         self.settings.setValue (self.key, value)
+
+
+class SimpleThread (QThread):
+
+    errorOccured = Signal (str)
+
+    def __init__ (self, target, args = (), kwargs = {}, parent = None):
+        super (SimpleThread, self).__init__ (parent)
+        self.target = target
+        self.args = args
+        self.kwargs = kwargs
+        self.result = None
+        self.running = False
+
+    def runWait (self):
+        self.running = True
+        self.start ()
+        while self.running:
+            QApplication.processEvents ()
+        self.deleteLater ()
+        return self.result
+
+    def run (self):
+        try:
+            self.result = self.target (*self.args, **self.kwargs)
+        except Exception as e:
+            self.errorOccured.emit (str (e).decode ('urf-8'))
+        self.running = False
+
+
+callAsync = lambda func, *args, **kwargs: SimpleThread (target = func, args = args, kwargs = kwargs).runWait ()
 
 
 def serialPorts ():

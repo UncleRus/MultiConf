@@ -94,10 +94,10 @@ class FirmwareWidget (ui.Scrollable):
         self.maps = {}
         self.builds = []
         self.refresh ()
-        self.button = ui.SquareButton ('Firmware', _('Firmware'))
+        self.button = ui.SquareButton ('Firmware', _('Firmware'), self)
         self.button.toggled.connect (lambda state: self.parent ().setCurrentWidget (self))
         self.board = board
-        self.board.connectionChanged.connect (lambda state: self.button.setEnabled (not state))
+        self.board.connectionChanged.connect (self.refreshButton)
 
     def setupUi (self):
         super (FirmwareWidget, self).setupUi ()
@@ -130,6 +130,9 @@ class FirmwareWidget (ui.Scrollable):
         self.lContent.addLayout (l)
 
         self.lContent.addStretch ()
+
+    def refreshButton (self, state):
+        self.button.setEnabled (not state)
 
     def refresh (self):
         self.cbVersion.clear ()
