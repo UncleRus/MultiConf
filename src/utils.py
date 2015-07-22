@@ -20,7 +20,6 @@ class Setting (object):
     def init (cls):
         if not cls.settings:
             cls.settings = QSettings ()
-        print cls.settings.fileName ()
 
     def __init__ (self, key, default = None, type_ = None):
         self.init ()
@@ -58,7 +57,6 @@ class SimpleThread (QThread):
         return self.result
 
     def run (self):
-        print 'SimpleThread run'
         try:
             self.result = self.target (*self.args, **self.kwargs)
         except Exception as e:

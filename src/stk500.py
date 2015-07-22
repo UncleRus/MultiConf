@@ -129,7 +129,6 @@ class Arduino (QObject):
 
     def __init__ (self, parent = None):
         super (Arduino, self).__init__ (parent)
-        print 'Ardu Init!'
         self.serial = serial.Serial ()
         self.waiting = False
 

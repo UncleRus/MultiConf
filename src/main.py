@@ -181,7 +181,6 @@ class MainWindow (QWidget):
         def changePort ():
             try:
                 settings.port = utils.ports [self.cbPort.currentIndex ()]
-                print settings.port
             except IndexError:
                 pass
         lPort.addWidget (QLabel (_('Port:'), self.pButtons))
