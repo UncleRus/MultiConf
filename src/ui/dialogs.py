@@ -2,65 +2,6 @@
 
 from PySide.QtCore import *
 from PySide.QtGui import *
-import utils
-
-
-class UnclosableDialog (QDialog):
-
-    def __init__ (self, parent):
-        super (UnclosableDialog, self).__init__ (parent, Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowMinMaxButtonsHint)
-        self.canClose = False
-
-    def keyPressEvent (self, event):
-        if not self.canClose and event.key () in (Qt.Key_Escape, Qt.Key_Enter):
-            event.ignore ()
-            return
-        super (ProcessDialog, self).keyPressEvent (event)
-
-
-class ConnectDialog (UnclosableDialog):
-
-    def __init__ (self, board, parent):
-        super (ConnectDialog, self).__init__ (parent)
-        self.board = board
-        self.board.connectionChanged.connect (self.refresh)
-        self.board.timeoutOccured.connect (self.onTimeout)
-        self.board.errorOccured.connect (self.reject)
-        self.setupUi ()
-
-    def setupUi (self):
-        l = QVBoxLayout (self)
-        self.lMessage = QLabel (_('Connect MinimOSD and press reset...'), self)
-        self.lMessage.setStyleSheet ('font-size: 12pt; padding-top: 16px; padding-bottom: 16px;')
-        l.addWidget (self.lMessage)
-        l.addStretch ()
-        bl = QHBoxLayout ()
-        bl.addStretch ()
-        self.bAgain = QPushButton (_('Try again'), self)
-        self.bAgain.clicked.connect (self.tryAgain)
-        self.bCancel = QPushButton (_('Cancel'), self)
-        self.bCancel.clicked.connect (self.reject)
-        bl.addWidget (self.bAgain)
-        bl.addWidget (self.bCancel)
-        l.addLayout (bl)
-        #self.tryAgain ()
-
-    def refresh (self, state):
-        if state:
-            self.accept ()
-        else:
-            self.onTimeout ()
-
-    def onTimeout (self):
-        self.canClose = True
-        self.bAgain.setEnabled (True)
-        self.bCancel.setEnabled (True)
-
-    def tryAgain (self):
-        self.bAgain.setEnabled (False)
-        self.bCancel.setEnabled (False)
-        self.canClose = False
-        QApplication.processEvents ()
 
 
 class AsyncProcess (QThread):

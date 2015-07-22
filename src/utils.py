@@ -58,10 +58,11 @@ class SimpleThread (QThread):
         return self.result
 
     def run (self):
+        print 'SimpleThread run'
         try:
             self.result = self.target (*self.args, **self.kwargs)
         except Exception as e:
-            self.errorOccured.emit (str (e).decode ('urf-8'))
+            self.errorOccured.emit (str (e).decode ('utf-8'))
         self.running = False
 
 

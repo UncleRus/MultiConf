@@ -3,13 +3,13 @@
 from PySide.QtCore import QObject, Signal, QThread
 from PySide.QtGui import QApplication
 import serial
-import sys
 from utils import Setting
 import time
 import struct
 import random
 import intelhex
 from io import BytesIO
+import traceback
 
 
 __all__ = ['Arduino']
@@ -105,6 +105,7 @@ def needConnection (func):
                 raise IOError (_('Not connected'))
             return func (*args, **kwargs)
         except Exception as e:
+            traceback.print_exc ()
             self.setError (e)
             return None
     return wrapped
@@ -128,6 +129,7 @@ class Arduino (QObject):
 
     def __init__ (self, parent = None):
         super (Arduino, self).__init__ (parent)
+        print 'Ardu Init!'
         self.serial = serial.Serial ()
         self.waiting = False
 
@@ -229,7 +231,7 @@ class Arduino (QObject):
 
             self.reset ()
 
-            for _ in xrange (10):
+            for _i in xrange (10):
                 self.serial.write (const.CMD_STK_GET_SYNC + const.SYNC_CRC_EOP)
                 self.serial.flushInput ()
                 QThread.msleep (10)
@@ -248,6 +250,7 @@ class Arduino (QObject):
             self.progressUpdated.emit (0)
             return True
         except Exception as e:
+            traceback.print_exc ()
             try:
                 self.serial.close ()
             except:

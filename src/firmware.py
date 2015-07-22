@@ -31,13 +31,13 @@ class FirmwareUpload (ui.AsyncProcess):
         self.osd.errorOccured.connect (self.onErrorOccured)
 
     def onStateChanged (self, state):
+        print 'State changed!', state
         self.changed.emit (state)
 
     def onProgressUpdated (self, percentage):
         self.progressUpdated.emit (percentage)
 
     def onErrorOccured (self, error):
-        print 'ERR', error
         traceback.print_exc ()
         self.error = True
         self.errorOccured.emit (error)

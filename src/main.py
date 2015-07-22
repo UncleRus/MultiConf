@@ -36,6 +36,65 @@ import qboard
 
 
 #===============================================================================
+# Connect window
+#===============================================================================
+
+class ConnectWindow (QWidget):
+
+    def __init__ (self, board, parent):
+        super (ConnectWindow, self).__init__ (parent, Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowMinMaxButtonsHint | Qt.Window)
+        self.board = board
+        self.board.connectionChanged.connect (self.refresh)
+        self.board.timeoutOccured.connect (self.onTimeout)
+        self.board.errorOccured.connect (self.close)
+        self.setupUi ()
+        offs = parent.size () / 2 - self.size () / 2
+        self.move (parent.pos ().x () + offs.width (), parent.pos ().y () + offs.height ())
+
+    def setupUi (self):
+        self.setWindowTitle (_('MinimOSD connection'))
+        l = QVBoxLayout (self)
+        self.lMessage = QLabel (_('Connect MinimOSD and press reset...'), self)
+        self.lMessage.setStyleSheet ('font-size: 12pt; padding-top: 16px; padding-bottom: 16px;')
+        l.addWidget (self.lMessage)
+        l.addStretch ()
+        bl = QHBoxLayout ()
+        bl.addStretch ()
+        self.bAgain = QPushButton (_('Try again'), self)
+        self.bAgain.clicked.connect (self.tryAgain)
+        self.bCancel = QPushButton (_('Cancel'), self)
+        self.bCancel.clicked.connect (self.close)
+        bl.addWidget (self.bAgain)
+        bl.addWidget (self.bCancel)
+        l.addLayout (bl)
+        self.resize (300, 100)
+        self.setWindowModality (Qt.ApplicationModal)
+
+    def refresh (self, state):
+        self.connected = state
+        if state:
+            self.close ()
+        else:
+            self.onTimeout ()
+
+    def onTimeout (self):
+        self.bAgain.setEnabled (True)
+        self.bCancel.setEnabled (True)
+
+    def tryAgain (self):
+        self.connected = None
+        self.bAgain.setEnabled (False)
+        self.bCancel.setEnabled (False)
+        utils.callAsync (self.board.connectBoard)
+        while self.connected is None:
+            QApplication.processEvents ()
+
+    def run (self):
+        self.show ()
+        self.tryAgain ()
+
+
+#===============================================================================
 # Main window
 #===============================================================================
 
@@ -172,7 +231,7 @@ class MainWindow (QWidget):
         if self.board.isConnected ():
             self.board.disconnectBoard ()
         else:
-            ui.ConnectDialog (self.board, self).exec_ ()
+            ConnectWindow (self.board, self).run ()
 
     def showError (self, error):
         QMessageBox.critical (self, _('Error'), error)
