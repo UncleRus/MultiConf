@@ -40,7 +40,11 @@
 			"MAVLink/RSSI threshold",
 			"MAVLink/Emulate RSSI level",
 			"MAVLink/RSSI emulation channel",
-			"MAVLink/RSSI emulation threshold"
+			"MAVLink/RSSI emulation threshold",
+			"ADCRSSI/RSSI ADC channel",
+			"ADCRSSI/RSSI update interval",
+			"ADCRSSI/RSSI threshold",
+			"ADCRSSI/RSSI multiplier"
 		],
 		"OSD": [
 			"OSD/Screens count",
@@ -191,6 +195,49 @@
 					]
 				}
 			}
+		},
+		
+		"ADCRSSI": {
+			"address": 40,
+			"depends": ["ADCRSSI"],
+			"options": {
+				"RSSI ADC channel": {
+					"offset": 0,
+					"descr": "ATmega328p ADC channel for RSSI",
+					"type": "enum",
+					"items": [
+						"Channel 0 (pin 23)",
+						"Channel 1 (pin 24)",
+						"Channel 2 (pin 25)",
+						"Channel 3 (pin 26)",
+						"Channel 4 (pin 27)",
+						"Channel 5 (pin 28)",
+						"Channel 6 (pin 19)",
+						"Channel 7 (pin 22)"
+					]
+				},
+				"RSSI update interval": {
+					"offset": 1,
+					"descr": "Update interval for RSSI calculation, ms",
+					"type": "uint16",
+					"min": 50,
+					"max": 5000
+				},
+				"RSSI threshold": {
+					"offset": 3,
+					"descr": "RSSI warning threshold, percents",
+					"type": "uint8",
+					"min": 0,
+					"max": 100
+				},
+				"RSSI multiplier": {
+					"offset": 4,
+					"descr": "RSSI multiplier = 100 / Uref",
+					"type": "float",
+					"min": 0.001,
+					"max": 1000
+				}
+			}			
 		},
 
 		"UAVTalk": {

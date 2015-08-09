@@ -12,6 +12,8 @@
 		<file>res/icons/Telemetry.png</file>
 		<file>res/icons/update.png</file>
 		<file>res/icons/upload.png</file>
+		<file>res/icons/refresh.png</file>
+		<file>res/icons/save.png</file>
 		<file>res/background.jpg</file>
 	</qresource>
 </RCC>

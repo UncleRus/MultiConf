@@ -4,7 +4,7 @@ from PySide.QtCore import *
 from PySide.QtGui import *
 import ui
 import stk500
-import qboard
+import multiosd
 from settings import settings
 from storage import storage
 from hw.options import OptionsMap
@@ -24,8 +24,8 @@ class FirmwareUpload (ui.AsyncProcess):
         self.board.changed.connect (self.onStateChanged)
         self.board.progressUpdated.connect (self.onProgressUpdated)
 
-        self.osd = qboard.QBoard (self)
-        self.osd.changed.connect (self.onStateChanged)
+        self.osd = multiosd.MultiOSD (self)
+        self.osd.stateChanged.connect (self.onStateChanged)
         self.osd.progressUpdated.connect (self.onProgressUpdated)
         self.osd.timeoutOccured.connect (lambda: self.onErrorOccured (_('Timeout')))
         self.osd.errorOccured.connect (self.onErrorOccured)
@@ -37,7 +37,6 @@ class FirmwareUpload (ui.AsyncProcess):
         self.progressUpdated.emit (percentage)
 
     def onErrorOccured (self, error):
-        print 'ERR', error
         traceback.print_exc ()
         self.error = True
         self.errorOccured.emit (error)
@@ -97,7 +96,7 @@ class FirmwareWidget (ui.Scrollable):
         self.button = ui.SquareButton ('Firmware', _('Firmware'), self)
         self.button.toggled.connect (lambda state: self.parent ().setCurrentWidget (self))
         self.board = board
-        self.board.connectionChanged.connect (self.refreshButton)
+        #self.board.connectionChanged.connect (self.refreshButton)
 
     def setupUi (self):
         super (FirmwareWidget, self).setupUi ()

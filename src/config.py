@@ -19,12 +19,12 @@ class ConfigWidget (ui.Scrollable):
 
     changed = Signal ()
 
-    def __init__ (self, name, board, parent):
+    def __init__ (self, name, proc, parent):
         super (ConfigWidget, self).__init__ (parent)
         self.name = name
         self.lContent = None
-        self.board = board
-        self.board.connectionChanged.connect (self.refresh)
+        self.proc = proc
+        self.proc.connectionChanged.connect (self.refresh)
         self.controls = []
         self.button = ui.SquareButton (name, _(name))
         self.button.toggled.connect (lambda state: self.parent ().setCurrentWidget (self))
@@ -46,10 +46,10 @@ class ConfigWidget (ui.Scrollable):
         self.lContent = QFormLayout (self.content)
 
     def load (self):
-        options = self.board.options
+        options = self.proc.osd.options
         for optname in options.struct ['map'][self.name]:
             opt = options.map [optname]
-            if not opt.section.enabled (self.board.modules):
+            if not opt.section.enabled (self.proc.osd.modules):
                 continue
             ctrl = self._factories [opt.type] (opt, self.content)
             ctrl.load ()

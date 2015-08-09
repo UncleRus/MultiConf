@@ -40,6 +40,13 @@ class Board (object):
         try:
             self.serial = Serial (self.port, self.baudrate, timeout = 1.0)
 
+            self.serial.setDTR (False)
+            self.serial.setRTS (False)
+            time.sleep (0.25)
+            self.serial.setDTR (True)
+            self.serial.setRTS (True)
+            time.sleep (0.05)
+
             _stop_at = time.time () + timeout
 
             while True:
@@ -56,9 +63,12 @@ class Board (object):
                     break
 
             self.connected = True
-        except:
-            self.serial.close ()
-            raise
+        except Exception as e:
+            try:
+                self.serial.close ()
+            except:
+                pass
+            raise e
 
     def disconnect (self):
         if not self.connected:
@@ -112,7 +122,7 @@ class Board (object):
             data = self.serial.read (0x10)
             res.extend (bytearray (data))
             if callback:
-                callback (i * 0x10)
+                callback ((i + 1) * 0x10)
         self.serial.readline ()
         self.serial.readline ()
         return bytearray (res)

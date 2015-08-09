@@ -19,9 +19,14 @@ class Control (QObject):
 
     def setupUi (self):
         self.input.setDisabled (self.option.readonly)
-        self.field.addWidget (self.input)
-        self.hint = QLabel ('<i>%s</i>' % _(self.option.description))
-        self.field.addWidget (self.hint)
+        l = QHBoxLayout ()
+        l.addWidget (self.input)
+        l.addStretch ()
+        self.field.addLayout (l)
+        if self.option.description and self.option.description != self.option.name:
+            self.hint = QLabel (_(self.option.description))
+            self.hint.setStyleSheet ('padding-bottom: 8px; font-size: small')
+            self.field.addWidget (self.hint)
 
     def onChanged (self):
         self.save ()

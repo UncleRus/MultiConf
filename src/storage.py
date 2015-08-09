@@ -21,11 +21,9 @@ class DataStorage (QObject):
 
     def __init__ (self, parent = None):
         super (DataStorage, self).__init__ (parent)
-        print settings.dataPath
         if not osp.exists (settings.dataPath):
             os.makedirs (settings.dataPath)
         self.indexFile = osp.join (settings.dataPath, 'releases.json')
-        print self.indexFile
         self.releases = json.load (open (self.indexFile, 'rb')) if osp.isfile (self.indexFile) else []
         self.updateMaps ()
 
@@ -67,7 +65,6 @@ class DataStorage (QObject):
 
     def update (self):
         releases = self.download (settings.repositoryUrl, None, True, True)
-        print releases
         if ({rel ['id']: rel ['name'] for rel in releases} == \
             {rel ['id']: rel ['name'] for rel in self.releases}):
             self.updated.emit (False)
