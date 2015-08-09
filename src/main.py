@@ -289,7 +289,7 @@ class MainWindow (QWidget):
             self.firmwarePage.button.toggle ()
             self.bConnect.setText (_('Connect'))
             self.bConnect.setName ('Connect')
-            self.lBoardInfo.setText ()
+            self.lBoardInfo.setText ('')
         self.firmwarePage.button.setEnabled (not state)
 
         self.aWriteEeprom.setEnabled (state)

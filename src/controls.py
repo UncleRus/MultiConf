@@ -25,7 +25,7 @@ class Control (QObject):
         self.field.addLayout (l)
         if self.option.description and self.option.description != self.option.name:
             self.hint = QLabel (_(self.option.description))
-            self.hint.setStyleSheet ('padding-bottom: 8px; font-size: small')
+            self.hint.setStyleSheet ('padding-bottom: 8px; color: %s' % self.hint.palette ().color (QPalette.Shadow).name ())
             self.field.addWidget (self.hint)
 
     def onChanged (self):

@@ -8,7 +8,6 @@ from PySide.QtGui import *
 import hw
 from settings import settings
 from storage import storage
-import traceback
 
 
 def command (func):
