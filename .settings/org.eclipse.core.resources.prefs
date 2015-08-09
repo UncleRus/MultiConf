@@ -3,6 +3,7 @@ encoding//src/config.py=utf-8
 encoding//src/controls.py=utf-8
 encoding//src/firmware.py=utf-8
 encoding//src/hw/board.py=utf-8
+encoding//src/hw/options.py=utf-8
 encoding//src/main.py=utf-8
 encoding//src/multiosd.py=utf-8
 encoding//src/settings.py=utf-8
