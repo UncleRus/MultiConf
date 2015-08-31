@@ -32,7 +32,7 @@ import ui
 import firmware
 import config
 import multiosd
-#import screens
+import screens
 
 
 #===============================================================================
@@ -108,7 +108,14 @@ class ConnectWindow (QDialog):
 
 class MainWindow (QWidget):
 
-    configPages = ('Telemetry', 'Picture', 'ADC', 'Battery', 'OSD')
+    configPages = (
+        ('Telemetry', config.ConfigWidget),
+        ('Picture', config.ConfigWidget),
+        ('ADC', config.ConfigWidget),
+        ('Battery', config.ConfigWidget),
+        ('OSD', config.ConfigWidget),
+        ('Screens', screens.ScreensWidget)
+    )
 
     padding = 22
 
@@ -119,6 +126,7 @@ class MainWindow (QWidget):
 
         self.ports = None
         self.firmwarePage = None
+        self.configChanged = False
 
         self.osd = multiosd.OSDProcess (self)
         self.osd.connectionChanged.connect (self.updateConnectionState)
@@ -170,7 +178,7 @@ class MainWindow (QWidget):
         self.pTools.setFrameStyle (QFrame.StyledPanel)
         lTools = QHBoxLayout (self.pTools)
         self.lBoardInfo = QLabel (self.pTools)
-        self.lBoardInfo.setStyleSheet ('color: %s' % self.lBoardInfo.palette ().color (QPalette.Mid).name ())
+        self.lBoardInfo.setStyleSheet ('color: %s' % self.lBoardInfo.palette ().color (QPalette.Shadow).name ())
         lTools.addWidget (self.lBoardInfo)
         lTools.addStretch ()
         self.lMain.addWidget (self.pTools)
@@ -211,11 +219,12 @@ class MainWindow (QWidget):
 
         # config pages
         self.pages = []
-        for name in self.configPages:
-            page = config.ConfigWidget (name, self.osd, self.content)
+        for name, cls in self.configPages:
+            page = cls (name, self.osd, self.content)
             self.content.addWidget (page)
             lButtons.addWidget (page.button)
             self.pages.append (page)
+            page.changed.connect (self.onConfigChanged)
         #lButtons.addWidget (self.bScreens)
         lButtons.addStretch ()
 
@@ -273,6 +282,10 @@ class MainWindow (QWidget):
     def onPageChanged (self, *args):
         self.pTools.setVisible (self.content.currentWidget () != self.firmwarePage)
 
+    def onConfigChanged (self):
+        self.aWriteEeprom.setEnabled (True)
+        self.configChanged = True
+
     def updateState (self, state):
         self.lStatus.setText (state)
 
@@ -292,7 +305,6 @@ class MainWindow (QWidget):
             self.lBoardInfo.setText ('')
         self.firmwarePage.button.setEnabled (not state)
 
-        self.aWriteEeprom.setEnabled (state)
         self.aReadEeprom.setEnabled (state)
 
     def updateProgress (self, percentage):
@@ -312,7 +324,7 @@ class MainWindow (QWidget):
         QMessageBox.critical (self, _('Error'), error)
 
     def writeEeprom (self):
-        pass
+        self.osd.saveOptions ()
 
     def readEeprom (self):
         pass

@@ -82,7 +82,8 @@ class MultiOSD (QObject):
     @command
     def saveOptions (self):
         self.stateChanged.emit (_('Writing EEPROM...'))
-        self.options.save (self.eeprom)
+        self.options.save (self.modules, self.eeprom)
+
         self.board.eeprom_write (self.eeprom, self.updateProgress (self.board.EEPROM_SIZE))
 
         self.stateChanged.emit (_('Reading EEPROM...'))

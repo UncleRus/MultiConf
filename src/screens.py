@@ -177,11 +177,10 @@ class Panel (QGraphicsItem):
 
 class Screen (QGraphicsScene):
 
-    def __init__ (self, cols, rows, fixedFont, bgImage = None, owner = None):
-        super (Screen, self).__init__ (owner)
+    def __init__ (self, cols, rows, bgImage = None, parent = None):
+        super (Screen, self).__init__ (parent)
         self.setScreenSize (cols, rows)
         self.setBgImage (bgImage)
-        self.fixedFont = fixedFont
         self._screenPos = QPoint (0, 0)
         self._position = QPoint (0, 0)
 
@@ -280,27 +279,68 @@ class ScreenEditor (QGraphicsView):
             self.fitInView (self.sceneRect (), Qt.KeepAspectRatio)
 
 
+class ScreenTab (QWidget):
+
+    def __init__ (self, proc, parent = None):
+        super (ScreenTab, self).__init__ (parent)
+        self.proc = proc
+        l = QVBoxLayout (self)
+        self.screen = Screen (30, 16, QImage (':/res/background.jpg'), self)
+        self.view = ScreenEditor (self.screen, self)
+        l.addWidget (self.view)
+
+    def refresh (self, state):
+        pass
+
+
 class ScreensWidget (ui.Scrollable):
 
-    def __init__ (self, count, eeprom, parent = None):
+    MAX_SCREENS = 8
+
+    changed = Signal ()
+
+    def __init__ (self, name, proc, parent = None):
+        self.proc = proc
+        self.button = ui.SquareButton (name, _(name))
+        self.button.toggled.connect (lambda state: self.parent ().setCurrentWidget (self))
+
+        self.proc.connectionChanged.connect (self.refresh)
         super (ScreensWidget, self).__init__ (parent)
 
-        self.screen = Screen (30, 16, Font (open ('main_font.mcm', 'rb')), QImage ('background.jpg'), owner = self)
-        self.view = ScreenEditor (self.screen, self)
+    def setupUi (self):
+        super (ScreensWidget, self).setupUi ()
+        self.layout ().setContentsMargins (0, 0, 0, 0)
 
-        [Panel (self.screen, self.screen.fixedFont, _) for _ in panelTypes]
+        self.lMain = QHBoxLayout (self.content)
+        self.lMain.setContentsMargins (0, 0, 0, 0)
 
-        self.l_main = QVBoxLayout (self)
-        self.l_main.addWidget (self.view)
+        self.panels = QListWidget (self)
+        self.panels.setMaximumWidth (200)
+        self.panels.setMinimumWidth (200)
 
+        self.tabWidget = QTabWidget (self.content)
+        self.tabs = []
+        for i in xrange (self.MAX_SCREENS):
+            tab = ScreenTab (self.proc, self)
+            self.tabWidget.addTab (tab, 'Screen %d' % (i + 1))
+            self.tabs.append (tab)
 
-#app = QApplication (sys.argv)
-#
-##s = Screen (30, 16, Font (open ('main_font.mcm', 'rb')), QImage ('background.jpg'))
-#w = Win ()
-#w.resize (1100, 800)
-#
-#w.show ()
-#
-#sys.exit (app.exec_ ())
+        self.lMain.addWidget (self.panels)
+        self.lMain.addWidget (self.tabWidget)
+
+        self.refresh (False)
+
+    def refresh (self, state):
+        if not state:
+            self.clear ()
+        else:
+            self.load ()
+        # TODO: Убрать!
+        #self.button.setEnabled (state)
+
+    def clear (self):
+        self.panels.clear ()
+
+    def load (self):
+        print self
 

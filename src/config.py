@@ -57,6 +57,10 @@ class ConfigWidget (ui.Scrollable):
             self.controls.append (ctrl)
             self.lContent.addRow (ctrl.label, ctrl.field)
 
+    def loadValues (self):
+        for ctrl in self.controls:
+            ctrl.load ()
+
     def onChanged (self):
         self.changed.emit ()
 
